@@ -235,14 +235,48 @@ Camadas de otimização, da mais para a menos impactante:
 | **5 — Observabilidade de custo e hardening** | Dashboards de uso/custo, rate limiting, revisão de segurança, LGPD |
 | **6 — Fontes pagas (opcional)** | Avaliar Cochrane/UpToDate/DynaMed conforme orçamento e necessidade clínica |
 
-## 8. O que falta para ativar (depende de você)
+## 8. Relação com a aplicação `painel-esus-sync` (branch `claude/esus-is-sync-app-39lftg`)
+
+Este repositório (`mtneto2709/painel`) contém, em branches separadas, **duas
+aplicações independentes**, com escopos e objetivos diferentes — nenhum
+código é compartilhado entre elas:
+
+| | `clinical-rag-agent` (esta branch) | `painel-esus-sync` (`claude/esus-is-sync-app-39lftg`) |
+|---|---|---|
+| Linguagem | Python/FastAPI | Node.js/TypeScript |
+| Objetivo | Agente RAG de apoio clínico (perfil do paciente + copiloto de atendimento) | Worker que substitui a trigger+dblink do e-SUS, fazendo *polling* somente leitura para acionar o painel de chamada de pacientes no Sistema IS |
+| Bancos que toca | e-SUS (leitura) + Sistema IS (leitura) + banco próprio (leitura/escrita) | e-SUS (leitura) + Sistema IS (escrita, via função já existente `sotech.esus_criar_chamada`) |
+
+Ao investigar essa outra branch a pedido do usuário, confirmamos que ela já
+opera em produção contra os mesmos dois bancos, o que revela parte real do
+schema — reaproveitada aqui **apenas como conhecimento**, não como código:
+
+- **e-SUS** (schema `public`, confirmado via `src/esusQueries.ts` daquele
+  worker): `tb_atend`, `tb_atend_prof`, `tb_status_atend`,
+  `tb_unidade_saude`, `tb_prontuario`, `tb_cidadao` (com `nu_cpf` como CPF),
+  `tb_lotacao`, `tb_prof`, `tb_cbo`, `tb_tipo_atend_prof`. Convenção de
+  colunas: PK `co_seq_*`, textos `no_*`, documentos `nu_*`, datas `dt_*`,
+  status `st_*`, tipos `tp_*`.
+- **Sistema IS**: schemas `sotech` e `ish` (não `public`). Tabelas
+  confirmadas (por nome, via chamada de função — colunas ainda não
+  confirmadas): `sotech.cdg_paciente`, `sotech.ate_atendimento`,
+  `sotech.ate_chamada`, `sotech.cdg_unidadesaude`, `sotech.cdg_setor`,
+  `sotech.cdg_interveniente`, `sotech.tbn_especialidade`, `ish.sys_usuario`.
+
+`app/repositories/esus_repository.py` e
+`app/repositories/sistema_is_repository.py` já foram atualizados para usar
+esses nomes reais onde confirmados (histórico de atendimento em ambas as
+bases); medicações, exames e alergias continuam como placeholder — nenhuma
+das duas aplicações confirmou essas tabelas até agora.
+
+## 9. O que falta para ativar (depende de você)
 
 1. Preencher `.env` com host/porta/usuário/senha **read-only** dos dois bancos
    (e-SUS APS e Sistema IS) e a `ANTHROPIC_API_KEY`.
-2. Compartilhar o schema (nomes de tabelas/colunas) das duas bases para que eu
-   implemente as queries reais em `app/repositories/esus_repository.py` e
-   `app/repositories/sistema_is_repository.py` (hoje contêm exemplos/placeholders
-   documentados).
+2. Validar/completar o schema de medicações, exames, alergias e
+   diagnósticos (CID-10/CIAP2) — não coberto pelo worker de chamada, então
+   ainda placeholder em `app/repositories/*.py` (ver §8).
 3. Definir a chave de resolução de identidade do paciente entre as duas bases
-   (CPF? CNS? ID interno mapeado?).
+   — no e-SUS já é `tb_cidadao.nu_cpf` (confirmado); no Sistema IS ainda
+   precisa ser confirmada a coluna equivalente em `sotech.cdg_paciente`.
 4. Decidir quais fontes pagas (se alguma) entram na Fase 6.

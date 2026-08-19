@@ -1,9 +1,21 @@
 """Consultas somente-leitura ao banco do Sistema IS (aplicação principal).
 
-ATENÇÃO: PLACEHOLDER — nomes de tabela/coluna a confirmar com o schema real
-do Sistema IS. A interface pública (`SistemaISRepository`) é o contrato que
-o resto do serviço consome; apenas o SQL interno deve mudar quando o schema
-for compartilhado.
+STATUS DO SCHEMA:
+  - O worker irmão (app independente, branch `claude/esus-is-sync-app-39lftg`)
+    confirma que o Sistema IS usa os schemas `sotech` e `ish` (não `public`),
+    com convenção de prefixos `cdg_` (cadastro), `ate_` (atendimento) e
+    `tbn_`/`tbl_` (tabelas de domínio). Tabelas confirmadas por esse worker:
+    `sotech.cdg_paciente`, `sotech.ate_atendimento`, `sotech.ate_chamada`,
+    `sotech.cdg_unidadesaude`, `sotech.cdg_setor`, `sotech.cdg_interveniente`
+    (profissionais/intervenientes), `sotech.tbn_especialidade`,
+    `ish.sys_usuario`.
+  - PORÉM esse worker só *chama uma função* (`sotech.esus_criar_chamada`) —
+    não faz SELECT nessas tabelas — então não temos confirmação dos NOMES
+    DE COLUNA. As queries abaixo já usam os nomes de tabela/schema corretos,
+    mas as colunas ainda são placeholders (convenção comum, não confirmada)
+    e precisam ser validadas contra o banco real antes de uso em produção.
+  - Não há, até o momento, nenhuma tabela confirmada de exames/alergias no
+    Sistema IS — `exames()` e `alergias()` seguem 100% placeholder.
 """
 
 from __future__ import annotations
@@ -45,18 +57,23 @@ class SistemaISRepository:
         self._session = session
 
     def historico_atendimentos(self, identity_value: str, limit: int = 200) -> list[SistemaISAtendimento]:
-        """TODO(schema real): ajustar nomes de tabela/coluna do Sistema IS."""
+        """Tabelas/schema confirmados (`sotech.ate_atendimento`,
+        `sotech.cdg_paciente`, `sotech.tbn_especialidade`,
+        `sotech.cdg_interveniente`); colunas ainda placeholder — ver
+        cabeçalho do módulo.
+        """
         query = text(
             """
             SELECT
                 a.data_atendimento,
-                a.especialidade,
+                esp.nome_especialidade AS especialidade,
                 a.diagnostico,
                 a.conduta,
                 prof.nome AS profissional
-            FROM atendimentos a
-            JOIN pacientes pac ON pac.id = a.paciente_id
-            LEFT JOIN profissionais prof ON prof.id = a.profissional_id
+            FROM sotech.ate_atendimento a
+            JOIN sotech.cdg_paciente pac ON pac.id = a.paciente_id
+            LEFT JOIN sotech.tbn_especialidade esp ON esp.id = a.especialidade_id
+            LEFT JOIN sotech.cdg_interveniente prof ON prof.id = a.profissional_id
             WHERE pac.cpf = :identity_value
             ORDER BY a.data_atendimento DESC
             LIMIT :limit
@@ -66,15 +83,18 @@ class SistemaISRepository:
         return [SistemaISAtendimento(**row._mapping) for row in rows]
 
     def exames(self, identity_value: str, limit: int = 100) -> list[SistemaISExame]:
-        """TODO(schema real): confirmar tabela de resultados de exames."""
+        """TODO(schema real): nenhuma tabela de exames foi confirmada até
+        agora — nem pelo schema `sotech`/`ish`, nem por outra fonte. Nomes
+        abaixo são placeholder completo.
+        """
         query = text(
             """
             SELECT
                 e.nome_exame,
                 e.data_exame,
                 e.resultado_resumo
-            FROM exames e
-            JOIN pacientes pac ON pac.id = e.paciente_id
+            FROM sotech.ate_exame e
+            JOIN sotech.cdg_paciente pac ON pac.id = e.paciente_id
             WHERE pac.cpf = :identity_value
             ORDER BY e.data_exame DESC
             LIMIT :limit
@@ -84,12 +104,14 @@ class SistemaISRepository:
         return [SistemaISExame(**row._mapping) for row in rows]
 
     def alergias(self, identity_value: str) -> list[SistemaISAlergia]:
-        """TODO(schema real): confirmar tabela de alergias/reações adversas."""
+        """TODO(schema real): nenhuma tabela de alergias foi confirmada até
+        agora. Nomes abaixo são placeholder completo.
+        """
         query = text(
             """
             SELECT al.substancia, al.reacao, al.gravidade
-            FROM alergias al
-            JOIN pacientes pac ON pac.id = al.paciente_id
+            FROM sotech.cdg_alergia al
+            JOIN sotech.cdg_paciente pac ON pac.id = al.paciente_id
             WHERE pac.cpf = :identity_value
             """
         )
