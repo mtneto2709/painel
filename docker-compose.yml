@@ -1,0 +1,46 @@
+# Sobe apenas a infraestrutura PRÓPRIA do microserviço (banco de app com
+# pgvector, Redis opcional e o serviço em si). Os bancos e-SUS APS e Sistema
+# IS são externos — não fazem parte deste compose, apenas são referenciados
+# via .env (host/porta/credenciais somente-leitura).
+
+services:
+  app-db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${APP_DB_NAME:-clinical_rag_agent}
+      POSTGRES_USER: ${APP_DB_USER:-clinical_rag_agent}
+      POSTGRES_PASSWORD: ${APP_DB_PASSWORD:-changeme}
+    ports:
+      - "${APP_DB_PORT:-5433}:5432"
+    volumes:
+      - app_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${APP_DB_USER:-clinical_rag_agent}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  clinical-rag-agent:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      APP_DB_HOST: app-db
+      APP_DB_PORT: 5432
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8080:8080"
+    depends_on:
+      app-db:
+        condition: service_healthy
+
+volumes:
+  app_db_data:
