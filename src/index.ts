@@ -10,7 +10,7 @@ async function main() {
 
   const state = new StateStore();
   const poller = new SyncPoller(esusPool, isPool, state);
-  const healthServer = startHealthServer(poller, appConfig.healthPort);
+  const healthServer = startHealthServer(poller, esusPool, appConfig.healthPort);
 
   poller.start();
 
