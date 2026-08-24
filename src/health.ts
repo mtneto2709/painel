@@ -1,10 +1,8 @@
 import { createServer } from "node:http";
-import type { Pool } from "pg";
 import type { SyncPoller } from "./poller";
-import { fetchAgendamentosFuturos } from "./agendamentoQueries";
 import { logger } from "./logger";
 
-export function startHealthServer(poller: SyncPoller, esusPool: Pool, port: number) {
+export function startHealthServer(poller: SyncPoller, port: number) {
   const server = createServer((req, res) => {
     if (req.url === "/health") {
       const body = JSON.stringify({
@@ -16,21 +14,6 @@ export function startHealthServer(poller: SyncPoller, esusPool: Pool, port: numb
       res.end(body);
       return;
     }
-
-    if (req.url === "/agendamentos/futuros") {
-      fetchAgendamentosFuturos(esusPool)
-        .then((rows) => {
-          res.writeHead(200, { "content-type": "application/json" });
-          res.end(JSON.stringify(rows));
-        })
-        .catch((err) => {
-          logger.error({ err }, "Falha ao consultar agendamentos futuros");
-          res.writeHead(502, { "content-type": "application/json" });
-          res.end(JSON.stringify({ error: "falha ao consultar agendamentos futuros" }));
-        });
-      return;
-    }
-
     res.writeHead(404);
     res.end();
   });

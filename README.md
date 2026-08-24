@@ -140,17 +140,3 @@ pelo `HEALTHCHECK` do Dockerfile e para monitoramento externo.
 - Auditoria de cada decisão (chamada enviada, ignorada por falta de
   profissional, erro, ou dry-run) na tabela `event_log` do SQLite local.
 - `GET /health` retorna o horário do último ciclo e o último erro, se houver.
-
-## Agendamentos futuros (em construção)
-
-`GET /agendamentos/futuros` consulta o e-SUS (somente leitura) e retorna os
-agendamentos com `dt_agendado >= hoje` e `st_agendado = 0`, já com os dados
-de identificação de paciente, profissional, especialidade (CBO) e unidade —
-os mesmos campos usados pelo find-or-create de `sotech.esus_criar_chamada`
-(implementado em `src/agendamentoQueries.ts`).
-
-**Status atual:** só a extração do e-SUS está implementada. A gravação
-correspondente no banco do IS ainda depende de mapear a(s) tabela(s) de
-destino (agenda propriamente dita, ou apenas pré-cadastro antecipado de
-paciente/profissional/unidade) — a definir junto com o usuário antes de
-implementar qualquer escrita nesse fluxo.
