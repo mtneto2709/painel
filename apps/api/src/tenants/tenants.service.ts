@@ -91,13 +91,13 @@ export class TenantsService {
         tenantId,
         metodo,
         ativo: dto.ativo,
-        configuracao: configuracaoCriptografada,
+        configuracao: configuracaoCriptografada as any,
         configurado,
         procedimentoTipo,
       },
       update: {
         ativo: dto.ativo,
-        ...(dto.configuracao ? { configuracao: configuracaoCriptografada, configurado } : {}),
+        ...(dto.configuracao ? { configuracao: configuracaoCriptografada as any, configurado } : {}),
       },
     });
 
@@ -167,13 +167,13 @@ export class TenantsService {
   }
 
   private metodosDisponiveis(
-    ativos: Array<{ metodo: MetodoValidacao; procedimentoTipo: string }>,
+    ativos: Array<{ metodo: string; procedimentoTipo: string }>,
     procedimentoTipo: string | undefined,
   ): MetodoValidacao[] {
     const disponiveis = new Set<MetodoValidacao>();
     for (const registro of ativos) {
       if (registro.procedimentoTipo === "" || registro.procedimentoTipo === (procedimentoTipo ?? "")) {
-        disponiveis.add(registro.metodo);
+        disponiveis.add(registro.metodo as MetodoValidacao);
       }
     }
     return Array.from(disponiveis);

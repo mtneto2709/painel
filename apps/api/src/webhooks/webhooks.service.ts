@@ -80,7 +80,7 @@ export class WebhooksService {
         tenantId,
         validacaoId: validacaoId ?? undefined,
         evento,
-        payload,
+        payload: payload as any,
         assinatura,
       },
     });

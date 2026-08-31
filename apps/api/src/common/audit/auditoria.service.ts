@@ -48,7 +48,7 @@ export class AuditoriaService {
         acao: input.acao,
         entidade: input.entidade,
         entidadeId: input.entidadeId,
-        detalhes: input.detalhes ?? {},
+        detalhes: (input.detalhes ?? {}) as any,
         hashAnterior,
         hashAtual,
         criadoEm: timestamp,
@@ -64,7 +64,7 @@ export class AuditoriaService {
       if (registro.hashAnterior !== hashAnteriorEsperado) {
         return { integra: false, totalRegistros: registros.length };
       }
-      const corpo = JSON.stringify({
+      const corpo: string = JSON.stringify({
         tenantId: registro.tenantId,
         ator: registro.ator,
         acao: registro.acao,
@@ -74,7 +74,7 @@ export class AuditoriaService {
         hashAnterior: registro.hashAnterior,
         timestamp: registro.criadoEm.toISOString(),
       });
-      const hashRecalculado = createHash("sha256").update(corpo).digest("hex");
+      const hashRecalculado: string = createHash("sha256").update(corpo).digest("hex");
       if (hashRecalculado !== registro.hashAtual) {
         return { integra: false, totalRegistros: registros.length };
       }

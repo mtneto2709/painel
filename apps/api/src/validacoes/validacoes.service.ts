@@ -1,4 +1,11 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  ServiceUnavailableException,
+  UnprocessableEntityException,
+} from "@nestjs/common";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Queue } from "bullmq";
 import { MetodoValidacao, StatusValidacao } from "@atendvalida/shared-types";
@@ -71,10 +78,12 @@ export class ValidacoesService {
           metadataCaptura: this.montarMetadata(contexto),
         },
       });
-      return this.formatarResposta(validacaoRejeitada, disponiveis, {
-        mensagem: dto.metodo_preferido
-          ? `O método "${dto.metodo_preferido}" não está ativo para este tenant/procedimento.`
-          : "Nenhum método de validação ativo foi encontrado para este tenant/procedimento.",
+      throw new UnprocessableEntityException({
+        ...this.formatarResposta(validacaoRejeitada, disponiveis, {
+          mensagem: dto.metodo_preferido
+            ? `O método "${dto.metodo_preferido}" não está ativo para este tenant/procedimento.`
+            : "Nenhum método de validação ativo foi encontrado para este tenant/procedimento.",
+        }),
       });
     }
 
@@ -274,7 +283,9 @@ export class ValidacoesService {
           metadataCaptura: this.mesclarMetadata(validacao.metadataCaptura, contexto),
         },
       });
-      return this.formatarResposta(atualizada, undefined, { mensagem: resultado.mensagem });
+      throw new ServiceUnavailableException({
+        ...this.formatarResposta(atualizada, undefined, { mensagem: resultado.mensagem }),
+      });
     }
     // Caminho reservado para quando um provider real estiver configurado.
     const confirmada = await this.prisma.validacao.update({
