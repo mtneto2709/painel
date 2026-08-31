@@ -14,15 +14,18 @@ export function PainelWebhook() {
 
   useEffect(() => {
     if (!tenantId) return;
+    let cancelado = false;
     api
       .obterWebhook(tenantId)
       .then((resp) => {
-        if (resp) {
-          setUrl(resp.url);
-          setAtivo(resp.ativo);
-        }
+        if (cancelado || !resp) return;
+        setUrl(resp.url ?? "");
+        setAtivo(typeof resp.ativo === "boolean" ? resp.ativo : true);
       })
       .catch(() => undefined);
+    return () => {
+      cancelado = true;
+    };
   }, [tenantId]);
 
   async function salvar() {
@@ -31,7 +34,7 @@ export function PainelWebhook() {
     setErro(null);
     setMensagem(null);
     try {
-      const resp = await api.configurarWebhook(tenantId, url, ativo);
+      const resp = await api.configurarWebhook(tenantId, url, Boolean(ativo));
       if (resp.segredo) setSegredoGerado(resp.segredo);
       setMensagem("Configuração salva com sucesso.");
     } catch (e) {
