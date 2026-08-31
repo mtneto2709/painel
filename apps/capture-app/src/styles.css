@@ -1,0 +1,205 @@
+:root {
+  --cor-primaria: #0f766e;
+  --cor-primaria-escura: #0b5c56;
+  --cor-erro: #b91c1c;
+  --cor-sucesso: #15803d;
+  --cor-texto: #1f2937;
+  --cor-texto-suave: #6b7280;
+  --cor-fundo: #f8fafc;
+  --cor-borda: #e2e8f0;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--cor-fundo);
+  color: var(--cor-texto);
+}
+
+.tela {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.cartao {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid var(--cor-borda);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  padding: 28px 24px;
+}
+
+.cabecalho {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.cabecalho h1 {
+  font-size: 1.25rem;
+  margin: 8px 0 4px;
+}
+
+.cabecalho p {
+  color: var(--cor-texto-suave);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.selo {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--cor-primaria);
+  text-transform: uppercase;
+}
+
+.campo-codigo {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: 20px 0 8px;
+}
+
+.campo-codigo input {
+  width: 42px;
+  height: 52px;
+  text-align: center;
+  font-size: 1.4rem;
+  border-radius: 10px;
+  border: 1px solid var(--cor-borda);
+}
+
+.campo-codigo input:focus {
+  outline: 2px solid var(--cor-primaria);
+  border-color: var(--cor-primaria);
+}
+
+button.botao-primario {
+  width: 100%;
+  padding: 14px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--cor-primaria);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-top: 12px;
+}
+
+button.botao-primario:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+button.botao-primario:hover:not(:disabled) {
+  background: var(--cor-primaria-escura);
+}
+
+button.botao-secundario {
+  width: 100%;
+  padding: 12px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--cor-primaria);
+  background: transparent;
+  border: 1px solid var(--cor-borda);
+  border-radius: 10px;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+button.botao-secundario:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mensagem-erro {
+  color: var(--cor-erro);
+  font-size: 0.85rem;
+  text-align: center;
+  margin-top: 10px;
+}
+
+.mensagem-sucesso {
+  color: var(--cor-sucesso);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.contador {
+  text-align: center;
+  color: var(--cor-texto-suave);
+  font-size: 0.85rem;
+  margin-top: 10px;
+}
+
+.icone-status {
+  font-size: 2.5rem;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.assinatura-caixa {
+  border: 2px dashed var(--cor-borda);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  touch-action: none;
+}
+
+.webcam-caixa {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--cor-borda);
+  background: #000;
+}
+
+.termo-consentimento {
+  font-size: 0.82rem;
+  color: var(--cor-texto-suave);
+  background: #f1f5f9;
+  border-radius: 10px;
+  padding: 12px;
+  max-height: 160px;
+  overflow-y: auto;
+  margin-bottom: 14px;
+  line-height: 1.4;
+}
+
+.linha-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.88rem;
+  margin-bottom: 6px;
+}
+
+.linha-checkbox input {
+  margin-top: 3px;
+}
+
+.rodape-app {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--cor-texto-suave);
+}

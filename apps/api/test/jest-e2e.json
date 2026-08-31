@@ -1,0 +1,11 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testRegex": ".e2e-spec.ts$",
+  "transform": { "^.+\\.(t|j)s$": "ts-jest" },
+  "setupFiles": ["<rootDir>/env-setup.ts"],
+  "moduleNameMapper": {
+    "^@atendvalida/shared-types$": "<rootDir>/../../../packages/shared-types/src/index.ts"
+  }
+}

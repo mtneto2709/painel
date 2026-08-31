@@ -20,9 +20,12 @@ async function bootstrap() {
     }),
   );
 
+  const origensPermitidas = (process.env.CORS_ORIGINS ?? "*").split(",").map((o) => o.trim());
   app.enableCors({
-    origin: (process.env.CORS_ORIGINS ?? "*").split(","),
-    credentials: true,
+    // Autenticação é via Bearer JWT (não cookies), então nao usamos
+    // credentials/cookies em CORS — isso permite liberar "*" com segurança.
+    origin: origensPermitidas.includes("*") ? true : origensPermitidas,
+    credentials: false,
   });
 
   app.setGlobalPrefix("v1", {
