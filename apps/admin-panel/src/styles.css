@@ -1,0 +1,341 @@
+:root {
+  --cor-primaria: #0f766e;
+  --cor-primaria-escura: #0b5c56;
+  --cor-erro: #b91c1c;
+  --cor-sucesso: #15803d;
+  --cor-aviso: #b45309;
+  --cor-texto: #1f2937;
+  --cor-texto-suave: #6b7280;
+  --cor-fundo: #f8fafc;
+  --cor-borda: #e2e8f0;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--cor-fundo);
+  color: var(--cor-texto);
+}
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.barra-lateral {
+  width: 220px;
+  background: #0b1120;
+  color: #cbd5e1;
+  padding: 20px 14px;
+  flex-shrink: 0;
+}
+
+.barra-lateral h2 {
+  color: #fff;
+  font-size: 1.05rem;
+  margin: 0 0 24px;
+}
+
+.barra-lateral nav a,
+.barra-lateral nav button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  color: #cbd5e1;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  text-decoration: none;
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+
+.barra-lateral nav a.ativo,
+.barra-lateral nav a:hover,
+.barra-lateral nav button:hover {
+  background: #1e293b;
+  color: #fff;
+}
+
+.conteudo {
+  flex: 1;
+  padding: 28px 32px;
+  max-width: 980px;
+}
+
+.conteudo h1 {
+  font-size: 1.4rem;
+  margin-top: 0;
+}
+
+.tela-central {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.cartao-login {
+  width: 100%;
+  max-width: 400px;
+  background: #fff;
+  border: 1px solid var(--cor-borda);
+  border-radius: 14px;
+  padding: 28px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.cartao-login h1 {
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+.campo {
+  margin-bottom: 14px;
+}
+
+.campo label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--cor-texto-suave);
+}
+
+.campo input,
+.campo select {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--cor-borda);
+  font-size: 0.95rem;
+}
+
+button.botao-primario {
+  padding: 10px 18px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--cor-primaria);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button.botao-primario:hover:not(:disabled) {
+  background: var(--cor-primaria-escura);
+}
+
+button.botao-primario:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+button.botao-secundario {
+  padding: 9px 16px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--cor-primaria);
+  background: #fff;
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button.botao-link {
+  background: none;
+  border: none;
+  color: var(--cor-primaria);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0;
+}
+
+.largura-total {
+  width: 100%;
+}
+
+.mensagem-erro {
+  color: var(--cor-erro);
+  font-size: 0.85rem;
+}
+
+.mensagem-sucesso {
+  color: var(--cor-sucesso);
+  font-size: 0.85rem;
+}
+
+.cartao {
+  background: #fff;
+  border: 1px solid var(--cor-borda);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 18px;
+}
+
+.linha-metodo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--cor-borda);
+  gap: 12px;
+}
+
+.linha-metodo:last-child {
+  border-bottom: none;
+}
+
+.nome-metodo {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-left: 8px;
+}
+
+.badge.configurado {
+  background: #dcfce7;
+  color: var(--cor-sucesso);
+}
+
+.badge.nao-configurado {
+  background: #fef3c7;
+  color: var(--cor-aviso);
+}
+
+.interruptor {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.interruptor input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.interruptor-trilho {
+  position: absolute;
+  inset: 0;
+  background: #cbd5e1;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.interruptor-trilho::before {
+  content: "";
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  top: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.15s;
+}
+
+.interruptor input:checked + .interruptor-trilho {
+  background: var(--cor-primaria);
+}
+
+.interruptor input:checked + .interruptor-trilho::before {
+  transform: translateX(18px);
+}
+
+table.tabela-historico {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+table.tabela-historico th {
+  text-align: left;
+  color: var(--cor-texto-suave);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+table.tabela-historico td {
+  padding: 10px 10px;
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+.filtros {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.filtros .campo {
+  margin-bottom: 0;
+  min-width: 150px;
+}
+
+.status-pill {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.status-pill.confirmado {
+  background: #dcfce7;
+  color: var(--cor-sucesso);
+}
+.status-pill.aguardando {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+.status-pill.expirado,
+.status-pill.codigo_invalido {
+  background: #fef3c7;
+  color: var(--cor-aviso);
+}
+.status-pill.rejeitado,
+.status-pill.erro,
+.status-pill.metodo_nao_configurado {
+  background: #fee2e2;
+  color: var(--cor-erro);
+}
+
+.aviso-caixa {
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+}
+
+.chave-exibida {
+  font-family: monospace;
+  background: #f1f5f9;
+  padding: 10px;
+  border-radius: 8px;
+  word-break: break-all;
+  font-size: 0.85rem;
+}

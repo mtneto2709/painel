@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import type { Request } from "express";
 import { ValidacoesService, ContextoRequisicao } from "./validacoes.service";
@@ -6,6 +6,7 @@ import { CriarValidacaoDto } from "./dto/criar-validacao.dto";
 import { ConfirmarTokenDto } from "./dto/confirmar-token.dto";
 import { EnviarAssinaturaDto } from "./dto/enviar-assinatura.dto";
 import { EnviarBiometriaDto } from "./dto/enviar-biometria.dto";
+import { ListarValidacoesQueryDto } from "./dto/listar-validacoes.dto";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { CurrentTenant, TenantAutenticado } from "../auth/current-tenant.decorator";
 import { ConsentimentosService } from "../consentimentos/consentimentos.service";
@@ -29,6 +30,26 @@ export class ValidacoesController {
     @Req() req: Request,
   ) {
     return this.validacoesService.criar(tenant.tenantId, dto, this.extrairContexto(req));
+  }
+
+  @Get()
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: "Lista o histórico de validações do tenant autenticado, com filtros e paginação",
+  })
+  async listar(@Query() query: ListarValidacoesQueryDto, @CurrentTenant() tenant: TenantAutenticado) {
+    return this.validacoesService.listarPorTenant(
+      tenant.tenantId,
+      {
+        status: query.status,
+        metodo: query.metodo,
+        dataInicio: query.data_inicio ? new Date(query.data_inicio) : undefined,
+        dataFim: query.data_fim ? new Date(query.data_fim) : undefined,
+      },
+      query.pagina ?? 1,
+      query.tamanho_pagina ?? 20,
+    );
   }
 
   @Get(":id")

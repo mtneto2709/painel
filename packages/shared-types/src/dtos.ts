@@ -93,7 +93,7 @@ export interface CriarTenantDto {
 export interface CriarTenantResponseDto {
   id: string;
   nome: string;
-  api_key: string;
+  api_key_id: string;
   api_secret: string;
 }
 

@@ -4,9 +4,10 @@
   "private": true,
   "description": "Tipos e DTOs TypeScript compartilhados entre a API e os apps front-end do AtendValida",
   "main": "./dist/index.js",
+  "module": "./dist/esm/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.esm.json",
     "lint": "tsc --noEmit"
   },
   "devDependencies": {

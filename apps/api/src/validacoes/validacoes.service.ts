@@ -122,6 +122,49 @@ export class ValidacoesService {
     return this.formatarResposta(validacao, disponiveis);
   }
 
+  async listarPorTenant(
+    tenantId: string,
+    filtros: { status?: StatusValidacao; metodo?: MetodoValidacao; dataInicio?: Date; dataFim?: Date },
+    pagina: number,
+    tamanhoPagina: number,
+  ) {
+    const where = {
+      tenantId,
+      ...(filtros.status ? { status: filtros.status } : {}),
+      ...(filtros.metodo ? { metodo: filtros.metodo } : {}),
+      ...(filtros.dataInicio || filtros.dataFim
+        ? {
+            criadoEm: {
+              ...(filtros.dataInicio ? { gte: filtros.dataInicio } : {}),
+              ...(filtros.dataFim ? { lte: filtros.dataFim } : {}),
+            },
+          }
+        : {}),
+    };
+
+    const [total, itens] = await Promise.all([
+      this.prisma.validacao.count({ where }),
+      this.prisma.validacao.findMany({
+        where,
+        include: { comprovante: true, paciente: true },
+        orderBy: { criadoEm: "desc" },
+        skip: (pagina - 1) * tamanhoPagina,
+        take: tamanhoPagina,
+      }),
+    ]);
+
+    return {
+      total,
+      pagina,
+      tamanho_pagina: tamanhoPagina,
+      itens: itens.map((v) => ({
+        ...this.formatarResposta(v, undefined, undefined, v.comprovante ?? null),
+        paciente_nome: v.paciente.nome,
+        paciente_telefone_mascarado: v.paciente.telefoneMascarado,
+      })),
+    };
+  }
+
   async obterTenantEPaciente(id: string) {
     const validacao = await this.buscarOuFalhar(id);
     return { tenantId: validacao.tenantId, pacienteId: validacao.pacienteId };
