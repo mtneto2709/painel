@@ -1,0 +1,14 @@
+{
+  "name": "@atendvalida/shared-types",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tipos e DTOs TypeScript compartilhados entre a API e os apps front-end do AtendValida",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "lint": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}

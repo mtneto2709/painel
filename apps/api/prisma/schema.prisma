@@ -1,0 +1,215 @@
+// Schema de dados do AtendValida.
+// Todas as tabelas de negocio sao isoladas por tenant_id (multi-tenant).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum StatusTenant {
+  ativo
+  suspenso
+  inativo
+}
+
+enum MetodoValidacao {
+  token_whatsapp
+  token_sms
+  assinatura_tela
+  biometria_facial
+}
+
+enum StatusValidacao {
+  aguardando
+  confirmado
+  expirado
+  codigo_invalido
+  rejeitado
+  erro
+  metodo_nao_configurado
+}
+
+enum StatusEntregaWebhook {
+  pendente
+  entregue
+  falhou
+}
+
+model Tenant {
+  id                  String   @id @default(uuid())
+  nome                String
+  emailContato        String?  @map("email_contato")
+  // api_key_hash: hash (SHA-256) do segredo do tenant. Nunca armazenamos o segredo em claro.
+  apiKeyId            String   @unique @map("api_key_id")
+  apiKeyHash          String   @map("api_key_hash")
+  status              StatusTenant @default(ativo)
+  configuracoesGerais Json     @default("{}") @map("configuracoes_gerais")
+  criadoEm            DateTime @default(now()) @map("criado_em")
+  atualizadoEm        DateTime @updatedAt @map("atualizado_em")
+
+  metodos          TenantValidationMethod[]
+  pacientes        Paciente[]
+  validacoes       Validacao[]
+  consentimentos   Consentimento[]
+  webhookEventos   WebhookEvento[]
+  webhookConfig    WebhookConfiguracao?
+  auditoriaLogs    AuditoriaLog[]
+
+  @@map("tenants")
+}
+
+model TenantValidationMethod {
+  id                String          @id @default(uuid())
+  tenantId          String          @map("tenant_id")
+  metodo            MetodoValidacao
+  ativo             Boolean         @default(false)
+  // Configuracao especifica do metodo (ex.: credenciais do provedor).
+  // Valores sensiveis sao criptografados (AES-256) antes de serem persistidos aqui.
+  configuracao      Json            @default("{}")
+  configurado       Boolean         @default(false)
+  procedimentoTipo  String          @default("") @map("procedimento_tipo")
+  criadoEm          DateTime        @default(now()) @map("criado_em")
+  atualizadoEm      DateTime        @updatedAt @map("atualizado_em")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, metodo, procedimentoTipo])
+  @@index([tenantId])
+  @@map("tenant_validation_methods")
+}
+
+model Paciente {
+  id                    String   @id @default(uuid())
+  tenantId              String   @map("tenant_id")
+  idExterno             String   @map("id_externo")
+  nome                  String
+  telefoneCriptografado String   @map("telefone_criptografado")
+  telefoneMascarado     String   @map("telefone_mascarado")
+  cpfHash               String?  @map("cpf_hash")
+  criadoEm              DateTime @default(now()) @map("criado_em")
+
+  tenant     Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  validacoes Validacao[]
+  consentimentos Consentimento[]
+
+  @@unique([tenantId, idExterno])
+  @@index([tenantId])
+  @@map("pacientes")
+}
+
+model Validacao {
+  id                       String           @id @default(uuid())
+  tenantId                 String           @map("tenant_id")
+  atendimentoId            String           @map("atendimento_id")
+  pacienteId               String           @map("paciente_id")
+  metodo                   MetodoValidacao
+  status                   StatusValidacao  @default(aguardando)
+  codigoHash               String?          @map("codigo_hash")
+  contexto                 Json             @default("{}")
+  documentoReferenciaHash  String?          @map("documento_referencia_hash")
+  metadataCaptura          Json             @default("{}") @map("metadata_captura")
+  tentativas               Int              @default(0)
+  criadoEm                 DateTime         @default(now()) @map("criado_em")
+  confirmadoEm             DateTime?        @map("confirmado_em")
+  expiraEm                 DateTime?        @map("expira_em")
+
+  tenant     Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  paciente   Paciente    @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  comprovante Comprovante?
+  webhookEventos WebhookEvento[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, atendimentoId])
+  @@map("validacoes")
+}
+
+model Comprovante {
+  id                String   @id @default(uuid())
+  validacaoId       String   @unique @map("validacao_id")
+  hashIntegridade   String   @map("hash_integridade")
+  assinaturaServico String   @map("assinatura_servico")
+  payloadAuditavel  Json     @map("payload_auditavel")
+  urlPdf            String?  @map("url_pdf")
+  geradoEm          DateTime @default(now()) @map("gerado_em")
+
+  validacao Validacao @relation(fields: [validacaoId], references: [id], onDelete: Cascade)
+
+  @@map("comprovantes")
+}
+
+model Consentimento {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("tenant_id")
+  pacienteId   String   @map("paciente_id")
+  tipo         String
+  versaoTermo  String   @map("versao_termo")
+  aceitoEm     DateTime @default(now()) @map("aceito_em")
+  ip           String?
+  evidencia    Json     @default("{}")
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, pacienteId, tipo])
+  @@map("consentimentos")
+}
+
+model WebhookConfiguracao {
+  id           String   @id @default(uuid())
+  tenantId     String   @unique @map("tenant_id")
+  url          String
+  segredoHash  String   @map("segredo_hash")
+  // O segredo em claro e mostrado apenas uma vez na criacao/rotacao; aqui guardamos criptografado
+  // para permitir o calculo do HMAC no envio dos webhooks.
+  segredoCriptografado String @map("segredo_criptografado")
+  ativo        Boolean  @default(true)
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("webhook_configuracoes")
+}
+
+model WebhookEvento {
+  id                  String                @id @default(uuid())
+  tenantId            String                @map("tenant_id")
+  validacaoId          String?              @map("validacao_id")
+  evento              String
+  payload             Json
+  assinatura          String
+  statusEntrega       StatusEntregaWebhook  @default(pendente) @map("status_entrega")
+  tentativasReentrega Int                   @default(0) @map("tentativas_reentrega")
+  enviadoEm           DateTime?             @map("enviado_em")
+  criadoEm            DateTime              @default(now()) @map("criado_em")
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  validacao Validacao? @relation(fields: [validacaoId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, statusEntrega])
+  @@map("webhook_eventos")
+}
+
+// Log de auditoria append-only, com hash encadeado ao registro anterior
+// (hash chain simples: cada registro guarda o hash do registro anterior + seus proprios dados).
+model AuditoriaLog {
+  id            String   @id @default(uuid())
+  tenantId      String?  @map("tenant_id")
+  ator          String
+  acao          String
+  entidade      String?
+  entidadeId    String?  @map("entidade_id")
+  detalhes      Json     @default("{}")
+  hashAnterior  String?  @map("hash_anterior")
+  hashAtual     String   @map("hash_atual")
+  criadoEm      DateTime @default(now()) @map("criado_em")
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, criadoEm])
+  @@map("auditoria_log")
+}

@@ -1,0 +1,16 @@
+{
+  "name": "atendvalida",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AtendValida - microservico de validacao de atendimentos de saude",
+  "license": "UNLICENSED",
+  "scripts": {
+    "dev:api": "pnpm --filter @atendvalida/api dev",
+    "dev:capture": "pnpm --filter @atendvalida/capture-app dev",
+    "dev:admin": "pnpm --filter @atendvalida/admin-panel dev",
+    "build": "pnpm -r build",
+    "test": "pnpm --filter @atendvalida/api test",
+    "lint": "pnpm -r lint"
+  },
+  "packageManager": "pnpm@9.12.0"
+}
