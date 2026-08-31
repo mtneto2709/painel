@@ -8,7 +8,10 @@ import { generateKeyPairSync } from "crypto";
 process.env.DATABASE_URL =
   process.env.DATABASE_URL_TEST ??
   "postgresql://atendvalida:atendvalida@localhost:5432/atendvalida_test?schema=public";
-process.env.REDIS_URL = process.env.REDIS_URL ?? "redis://localhost:6379";
+// Usa um índice de banco Redis dedicado (1) para não competir por filas
+// BullMQ com uma instância da API rodando em paralelo (ex.: `pnpm dev:api`),
+// já que o nome das filas é o mesmo independentemente do ambiente.
+process.env.REDIS_URL = process.env.REDIS_URL_TEST ?? "redis://localhost:6379/1";
 process.env.JWT_SECRET = "teste-jwt-secret";
 process.env.JWT_EXPIRES_IN_SECONDS = "900";
 process.env.KMS_LOCAL_KEY = "teste-kms-local-key";
