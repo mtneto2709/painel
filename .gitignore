@@ -11,3 +11,4 @@ apps/api/generated/
 apps/api/prisma/dev.db
 apps/api/storage/
 *.tsbuildinfo
+dump.rdb

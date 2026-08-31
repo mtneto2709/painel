@@ -1,0 +1,81 @@
+name: atendvalida
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-atendvalida}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-atendvalida}
+      POSTGRES_DB: ${POSTGRES_DB:-atendvalida}
+    ports:
+      - "5432:5432"
+    volumes:
+      - atendvalida_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-atendvalida}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - atendvalida_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-atendvalida}:${POSTGRES_PASSWORD:-atendvalida}@postgres:5432/${POSTGRES_DB:-atendvalida}?schema=public
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - atendvalida_comprovantes:/repo/apps/api/storage/comprovantes
+
+  capture-app:
+    build:
+      context: .
+      dockerfile: apps/capture-app/Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:3000/v1}
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+
+  admin-panel:
+    build:
+      context: .
+      dockerfile: apps/admin-panel/Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:3000/v1}
+    restart: unless-stopped
+    ports:
+      - "5174:80"
+    depends_on:
+      - api
+
+volumes:
+  atendvalida_postgres_data:
+  atendvalida_redis_data:
+  atendvalida_comprovantes:
