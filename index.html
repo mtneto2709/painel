@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Consulta SIGTAP</title>
+    <meta
+      name="description"
+      content="Consulta moderna à Tabela de Procedimentos, Medicamentos, Órteses, Próteses e Materiais Especiais do SUS (SIGTAP), com dados públicos do DATASUS."
+    />
+    <meta name="theme-color" content="#0b6e69" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b6e69'/%3E%3Cpath d='M13 7h6v6h6v6h-6v6h-6v-6H7v-6h6z' fill='white'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/css/app.css" />
+    <script>
+      try {
+        const t = localStorage.getItem('sigtap.theme');
+        if (t) document.documentElement.dataset.theme = JSON.parse(t);
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Pular para o conteúdo</a>
+    <div class="shell">
+      <aside class="sidebar" id="sidebar" aria-label="Navegação principal">
+        <a class="brand" href="#/">
+          <span class="logo" aria-hidden="true"></span>
+          <span class="brand-text"><strong>SIGTAP</strong><small>Tabela Unificada SUS</small></span>
+        </a>
+        <nav id="nav"></nav>
+        <div class="sidebar-foot" id="sidebar-foot"></div>
+      </aside>
+      <div class="scrim" id="scrim"></div>
+      <div class="main-col">
+        <header class="topbar">
+          <button class="icon-btn only-mobile" id="menu-btn" aria-label="Abrir menu"></button>
+          <button class="search-trigger" id="search-trigger" aria-label="Buscar (Ctrl+K)">
+            <span class="st-icon"></span>
+            <span class="st-text">Buscar procedimento, código, CID, CBO…</span>
+            <kbd>Ctrl K</kbd>
+          </button>
+          <div class="topbar-actions">
+            <label class="comp-select" title="Competência">
+              <span>Competência</span>
+              <select id="comp-select" aria-label="Competência"></select>
+            </label>
+            <button class="icon-btn" id="theme-btn" aria-label="Alternar tema"></button>
+          </div>
+        </header>
+        <main id="main" tabindex="-1">
+          <div class="loading-screen">
+            <div class="spinner"></div>
+            <p>Carregando Tabela Unificada…</p>
+          </div>
+        </main>
+        <footer class="footer">
+          <p>
+            Consulta não oficial baseada em dados públicos do Ministério da Saúde / DATASUS (SIGTAP). Verifique sempre a
+            fonte oficial antes de faturar.
+          </p>
+        </footer>
+      </div>
+    </div>
+    <div class="palette" id="palette" hidden>
+      <div class="palette-box" role="dialog" aria-modal="true" aria-label="Busca rápida">
+        <div class="palette-input">
+          <span class="pi-icon"></span>
+          <input id="palette-input" type="search" placeholder="Digite um código, nome, CID ou CBO…" autocomplete="off" />
+          <kbd>Esc</kbd>
+        </div>
+        <div class="palette-results" id="palette-results" role="listbox"></div>
+        <div class="palette-foot"><span><kbd>↑</kbd><kbd>↓</kbd> navegar</span><span><kbd>Enter</kbd> abrir</span><span><kbd>Esc</kbd> fechar</span></div>
+      </div>
+    </div>
+    <div id="toasts" class="toasts" aria-live="polite"></div>
+    <script type="module" src="assets/js/app.js"></script>
+  </body>
+</html>

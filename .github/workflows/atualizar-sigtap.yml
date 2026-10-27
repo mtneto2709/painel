@@ -1,0 +1,50 @@
+name: Atualizar SIGTAP
+
+# O DATASUS publica a Tabela Unificada mensalmente; verificamos duas vezes por mês
+# e também é possível disparar manualmente (opcionalmente com uma competência).
+on:
+  schedule:
+    - cron: "17 9 5,20 * *"
+  workflow_dispatch:
+    inputs:
+      competencia:
+        description: "Competência AAAAMM (vazio = mais recente)"
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: atualizar-sigtap
+  cancel-in-progress: false
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Testes do leitor
+        run: python3 -m unittest discover -s tests
+      - name: Baixar e processar pacote oficial
+        env:
+          SIGTAP_MANTER: "6"
+        run: |
+          if [ -n "${{ github.event.inputs.competencia }}" ]; then
+            python3 scripts/sigtap_build.py oficial --competencia "${{ github.event.inputs.competencia }}"
+          else
+            python3 scripts/sigtap_build.py oficial
+          fi
+      - name: Commit dos dados
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          if git diff --cached --quiet; then
+            echo "Sem alterações."
+          else
+            git commit -m "dados: atualiza Tabela Unificada SIGTAP ($(jq -r .atual data/manifest.json))"
+            git push
+          fi
