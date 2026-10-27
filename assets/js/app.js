@@ -14,34 +14,75 @@ const C = () => store.current;
 
 const NAV = [
   ['', 'home', 'Início'],
-  ['procedimentos', 'list', 'Consultar procedimentos'],
-  ['navegar', 'tree', 'Navegar por grupos'],
-  ['cid', 'cid', 'CID-10'],
-  ['cbo', 'cbo', 'Ocupações (CBO)'],
-  ['tabelas', 'table', 'Tabelas auxiliares'],
-  null,
-  ['compatibilidade', 'link', 'Compatibilidades'],
-  ['simulador', 'calc', 'Simulador de valores'],
-  ['comparar', 'columns', 'Comparar'],
-  ['favoritos', 'star', 'Favoritos e histórico'],
-  null,
-  ['download', 'download', 'Dados e download'],
-  ['sobre', 'info', 'Sobre a SIGTAP'],
+  {
+    title: 'Consulta',
+    items: [
+      ['procedimentos', 'list', 'Consultar procedimentos'],
+      ['navegar', 'tree', 'Navegar por grupos'],
+      ['cid', 'cid', 'CID-10'],
+      ['cbo', 'cbo', 'Ocupações (CBO)'],
+      ['tabelas', 'table', 'Tabelas auxiliares'],
+    ],
+  },
+  {
+    title: 'Ferramentas',
+    items: [
+      ['compatibilidade', 'link', 'Compatibilidades'],
+      ['simulador', 'calc', 'Simulador de valores'],
+      ['comparar', 'columns', 'Comparar'],
+      ['favoritos', 'star', 'Favoritos e histórico'],
+    ],
+  },
+  {
+    title: 'Dados e informações',
+    items: [
+      ['download', 'download', 'Dados e download'],
+      ['sobre', 'info', 'Sobre a SIGTAP'],
+    ],
+  },
 ];
+const NAV_PAGES = NAV.flatMap((n) => n.items || [n]);
+
+// Grupos do menu funcionam como acordeão: só um aberto por vez, para que a
+// barra lateral caiba na tela sem rolagem.
+let navOpen = null;
+
+function setNavOpen(title) {
+  navOpen = title;
+  for (const g of $$('#nav .nav-group')) {
+    const open = g.dataset.group === navOpen;
+    g.classList.toggle('open', open);
+    $('.nav-group-btn', g).setAttribute('aria-expanded', open);
+  }
+}
 
 function renderNav(active) {
   const cesta = prefs.get('cesta', []).length;
   const cmp = prefs.get('cmp', []).length;
   const badge = { simulador: cesta, comparar: cmp };
+  const activeGroup = NAV.find((n) => n.items?.some((it) => it[0] === active));
+  if (activeGroup) navOpen = activeGroup.title;
+  const item = (n) => html`<a href="#/${n[0]}" class="nav-item ${active === n[0] ? 'active' : ''}" ${raw(active === n[0] ? 'aria-current="page"' : '')}>
+      ${icon(n[1])}<span>${n[2]}</span>${badge[n[0]] ? html`<b class="badge">${badge[n[0]]}</b>` : ''}
+    </a>`;
   $('#nav').innerHTML = String(
-    html`${NAV.map((n) =>
-      n === null
-        ? html`<div class="nav-sep"></div>`
-        : html`<a href="#/${n[0]}" class="nav-item ${active === n[0] ? 'active' : ''}" ${raw(active === n[0] ? 'aria-current="page"' : '')}>
-            ${icon(n[1])}<span>${n[2]}</span>${badge[n[0]] ? html`<b class="badge">${badge[n[0]]}</b>` : ''}
-          </a>`,
+    html`${NAV.map((n, i) =>
+      n.items
+        ? html`<div class="nav-group ${navOpen === n.title ? 'open' : ''} ${n === activeGroup ? 'has-active' : ''}" data-group="${n.title}">
+            <button class="nav-group-btn" aria-expanded="${navOpen === n.title}" aria-controls="nav-g${i}">
+              <span>${n.title}</span>${n.items.some((it) => badge[it[0]]) ? html`<b class="dot-badge"></b>` : ''}${icon('down', 'chev')}
+            </button>
+            <div class="nav-group-body" id="nav-g${i}"><div>${n.items.map(item)}</div></div>
+          </div>`
+        : item(n),
     )}`,
   );
+  $('#nav').onclick = (e) => {
+    const btn = e.target.closest('.nav-group-btn');
+    if (!btn) return;
+    const title = btn.parentElement.dataset.group;
+    setNavOpen(navOpen === title ? null : title);
+  };
 }
 
 function parseHash() {
@@ -1340,10 +1381,13 @@ async function viewDownload() {
       <div class="dl-row">
         <button class="btn primary" id="dl-csv">${icon('csv')}<span>Baixar todos os procedimentos (CSV)</span></button>
         <a class="btn" href="ftp://ftp2.datasus.gov.br/pub/sistemas/tup/downloads/" target="_blank" rel="noopener">${icon('external')}<span>FTP oficial do DATASUS</span></a>
+        <button class="link-btn dl-how" id="dl-how">${icon('info')}<span>Como os dados são atualizados</span></button>
       </div>
-    </section>
-    <section class="card pad-card prose">
-      <h2>Como os dados são atualizados</h2>
+    </section></div>
+    <dialog class="modal" id="dl-modal" aria-labelledby="dl-modal-title">
+      <div class="modal-head"><h2 id="dl-modal-title">Como os dados são atualizados</h2>
+        <button class="icon-btn" id="dl-modal-close" aria-label="Fechar">${icon('x')}</button></div>
+      <div class="modal-body prose">
       <p>O DATASUS publica mensalmente o pacote <code>TabelaUnificada_AAAAMM_vXXXX.zip</code> em
       <code>ftp://ftp2.datasus.gov.br/pub/sistemas/tup/downloads/</code>. O script <code>scripts/sigtap_build.py</code>
       lê os arquivos de largura fixa usando os próprios layouts publicados no pacote e gera os arquivos em <code>data/AAAAMM/</code>.</p>
@@ -1354,7 +1398,11 @@ python3 scripts/sigtap_build.py oficial --zip TabelaUnificada_202610_v2610101010
       <h3>Competência atual</h3>
       <ul><li>Fonte: ${c.meta.fonte}</li><li>Arquivo: <code>${c.meta.arquivo}</code></li><li>Gerado em: ${new Date(c.meta.geradoEm).toLocaleString('pt-BR')}</li></ul>
       ${c.meta.avisos?.length ? html`<div class="notice warn">${icon('alert')}<div>${c.meta.avisos.map((a) => html`<p>${a}</p>`)}</div></div>` : ''}
-    </section></div>`);
+    </div></dialog>`);
+  const modal = $('#dl-modal');
+  $('#dl-how').onclick = () => modal.showModal();
+  $('#dl-modal-close').onclick = () => modal.close();
+  modal.addEventListener('click', (e) => e.target === modal && modal.close());
   $('#dl-csv').onclick = () => {
     downloadCSV(`sigtap_${c.id}.csv`,
       ['Código', 'Procedimento', 'Grupo', 'Subgrupo', 'Forma de organização', 'Complexidade', 'Financiamento', 'Rubrica', 'Sexo', 'Idade mín. (meses)', 'Idade máx. (meses)', 'Qtd. máxima', 'Permanência (dias)', 'Pontos', 'SA (R$)', 'SH (R$)', 'SP (R$)'],
@@ -1421,7 +1469,7 @@ const palette = {
     if (!q) {
       const hist = prefs.get('hist', []).map((co) => c.get(co)).filter(Boolean).slice(0, 5);
       if (hist.length) groups.push(['Recentes', hist.map((p) => ({ href: `#/procedimento/${p.co}`, code: fmtCode(p.co), text: p.no }))]);
-      groups.push(['Páginas', NAV.filter(Boolean).map((n) => ({ href: `#/${n[0]}`, icon: n[1], text: n[2] }))]);
+      groups.push(['Páginas', NAV_PAGES.map((n) => ({ href: `#/${n[0]}`, icon: n[1], text: n[2] }))]);
     } else {
       const procs = c.search(q).slice(0, 8);
       if (procs.length) groups.push(['Procedimentos', procs.map((p) => ({ href: `#/procedimento/${p.co}`, code: fmtCode(p.co), text: p.no, val: p.sa ? money(p.sa) : p.totHosp ? money(p.totHosp) : '' }))]);
@@ -1432,7 +1480,7 @@ const palette = {
       if (cids.length) groups.push(['CID-10', cids.map((x) => ({ href: `#/cid/${x.co}`, code: fmtCid(x.co), text: x.no }))]);
       const cbos = Object.entries(c.t.ocupacoes).filter(([co, no]) => match(co, norm(no))).slice(0, 4);
       if (cbos.length) groups.push(['Ocupações (CBO)', cbos.map(([co, no]) => ({ href: `#/cbo/${co}`, code: co, text: no }))]);
-      const pages = NAV.filter((n) => n && norm(n[2]).includes(nq));
+      const pages = NAV_PAGES.filter((n) => norm(n[2]).includes(nq));
       if (pages.length) groups.push(['Páginas', pages.map((n) => ({ href: `#/${n[0]}`, icon: n[1], text: n[2] }))]);
       groups.push(['', [{ href: `#/procedimentos?q=${encodeURIComponent(q)}`, icon: 'list', text: `Ver todos os procedimentos para “${q}”` }]]);
     }
