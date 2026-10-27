@@ -1498,76 +1498,121 @@ async function viewSobre() {
 // ---------------------------------------------------------------------------
 // Busca rápida (Ctrl+K)
 
+function searchGroups(q) {
+  const c = C();
+  const groups = [];
+  if (!q) {
+    const hist = prefs.get('hist', []).map((co) => c.get(co)).filter(Boolean).slice(0, 5);
+    if (hist.length) groups.push(['Recentes', hist.map((p) => ({ href: `#/procedimento/${p.co}`, code: fmtCode(p.co), text: p.no }))]);
+    groups.push(['Páginas', NAV_PAGES.map((n) => ({ href: `#/${n[0]}`, icon: n[1], text: n[2] }))]);
+    return groups;
+  }
+  const procs = c.search(q).slice(0, 8);
+  if (procs.length) groups.push(['Procedimentos', procs.map((p) => ({ href: `#/procedimento/${p.co}`, code: fmtCode(p.co), text: p.no, val: p.sa ? money(p.sa) : p.totHosp ? money(p.totHosp) : '' }))]);
+  const nq = norm(q);
+  const qc = nq.replace(/[.\s-]/g, '').toUpperCase();
+  const match = (co, n) => co.startsWith(qc) || nq.split(/\s+/).every((t) => n.includes(t));
+  const cids = (c.cid || []).filter((x) => match(x.co, x.n)).slice(0, 4);
+  if (cids.length) groups.push(['CID-10', cids.map((x) => ({ href: `#/cid/${x.co}`, code: fmtCid(x.co), text: x.no }))]);
+  const cbos = Object.entries(c.t.ocupacoes).filter(([co, no]) => match(co, norm(no))).slice(0, 4);
+  if (cbos.length) groups.push(['Ocupações (CBO)', cbos.map(([co, no]) => ({ href: `#/cbo/${co}`, code: co, text: no }))]);
+  const pages = NAV_PAGES.filter((n) => norm(n[2]).includes(nq));
+  if (pages.length) groups.push(['Páginas', pages.map((n) => ({ href: `#/${n[0]}`, icon: n[1], text: n[2] }))]);
+  groups.push(['', [{ href: `#/procedimentos?q=${encodeURIComponent(q)}`, icon: 'list', text: `Ver todos os procedimentos para “${q}”` }]]);
+  return groups;
+}
+
+/** Liga um campo de busca a uma lista de resultados navegável pelo teclado. */
+function searchBox(input, results, done) {
+  const box = {
+    items: [],
+    active: 0,
+    draw() {
+      const q = input.value.trim();
+      const groups = searchGroups(q);
+      box.items = groups.flatMap((g) => g[1]);
+      box.active = 0;
+      let i = 0;
+      results.innerHTML = String(html`${groups.map(([title, items]) => html`
+        ${title ? html`<div class="pr-group">${title}</div>` : ''}
+        ${items.map((it) => html`<a class="pr-item ${i === 0 ? 'on' : ''}" role="option" data-i="${i++}" href="${it.href}">
+          ${it.icon ? icon(it.icon) : html`<span class="code">${it.code}</span>`}<span class="pr-text">${raw(mark(it.text, q))}</span>${it.val ? html`<span class="pr-val">${it.val}</span>` : ''}</a>`)}`)}`);
+    },
+    move(d) {
+      const els = $$('.pr-item', results);
+      if (!els.length) return;
+      box.active = (box.active + d + els.length) % els.length;
+      els.forEach((e, i) => e.classList.toggle('on', i === box.active));
+      els[box.active].scrollIntoView({ block: 'nearest' });
+    },
+  };
+  input.addEventListener('input', debounce(() => box.draw(), 80));
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') e.preventDefault(), box.move(1);
+    if (e.key === 'ArrowUp') e.preventDefault(), box.move(-1);
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const it = box.items[box.active];
+      if (it) (location.hash = it.href), done();
+    }
+    if (e.key === 'Escape') done();
+  });
+  results.addEventListener('click', (e) => e.target.closest('.pr-item') && done());
+  return box;
+}
+
+// Busca direta na barra superior: os resultados abrem logo abaixo do campo.
+const topSearch = {
+  wrap: $('#top-search'),
+  input: $('#top-q'),
+  results: $('#top-results'),
+  show() {
+    this.box.draw();
+    this.results.hidden = false;
+    this.input.setAttribute('aria-expanded', 'true');
+    C().loadCid().then(() => !this.results.hidden && this.input.value && this.box.draw());
+  },
+  hide() {
+    this.results.hidden = true;
+    this.input.setAttribute('aria-expanded', 'false');
+  },
+  focus() {
+    this.input.focus();
+    this.input.select();
+  },
+};
+topSearch.box = searchBox(topSearch.input, topSearch.results, () => {
+  topSearch.input.value = '';
+  topSearch.hide();
+  topSearch.input.blur();
+});
+topSearch.input.addEventListener('focus', () => topSearch.show());
+topSearch.input.addEventListener('input', () => topSearch.results.hidden && topSearch.show());
+// Mantém o foco no campo ao clicar num resultado, para o clique chegar ao link.
+topSearch.results.addEventListener('mousedown', (e) => e.preventDefault());
+topSearch.input.addEventListener('blur', () => topSearch.hide());
+
+// Pesquisa avançada: a mesma busca em um modal.
 const palette = {
   el: $('#palette'),
   input: $('#palette-input'),
   results: $('#palette-results'),
-  items: [],
-  active: 0,
   open() {
+    topSearch.hide();
     this.el.hidden = false;
     document.body.classList.add('no-scroll');
     this.input.value = '';
-    this.draw();
+    this.box.draw();
     this.input.focus();
-    C().loadCid().then(() => this.input.value && this.draw());
+    C().loadCid().then(() => this.input.value && this.box.draw());
   },
   close() {
     this.el.hidden = true;
     document.body.classList.remove('no-scroll');
   },
-  draw() {
-    const q = this.input.value.trim();
-    const c = C();
-    const groups = [];
-    if (!q) {
-      const hist = prefs.get('hist', []).map((co) => c.get(co)).filter(Boolean).slice(0, 5);
-      if (hist.length) groups.push(['Recentes', hist.map((p) => ({ href: `#/procedimento/${p.co}`, code: fmtCode(p.co), text: p.no }))]);
-      groups.push(['Páginas', NAV_PAGES.map((n) => ({ href: `#/${n[0]}`, icon: n[1], text: n[2] }))]);
-    } else {
-      const procs = c.search(q).slice(0, 8);
-      if (procs.length) groups.push(['Procedimentos', procs.map((p) => ({ href: `#/procedimento/${p.co}`, code: fmtCode(p.co), text: p.no, val: p.sa ? money(p.sa) : p.totHosp ? money(p.totHosp) : '' }))]);
-      const nq = norm(q);
-      const qc = nq.replace(/[.\s-]/g, '').toUpperCase();
-      const match = (co, n) => co.startsWith(qc) || nq.split(/\s+/).every((t) => n.includes(t));
-      const cids = (c.cid || []).filter((x) => match(x.co, x.n)).slice(0, 4);
-      if (cids.length) groups.push(['CID-10', cids.map((x) => ({ href: `#/cid/${x.co}`, code: fmtCid(x.co), text: x.no }))]);
-      const cbos = Object.entries(c.t.ocupacoes).filter(([co, no]) => match(co, norm(no))).slice(0, 4);
-      if (cbos.length) groups.push(['Ocupações (CBO)', cbos.map(([co, no]) => ({ href: `#/cbo/${co}`, code: co, text: no }))]);
-      const pages = NAV_PAGES.filter((n) => norm(n[2]).includes(nq));
-      if (pages.length) groups.push(['Páginas', pages.map((n) => ({ href: `#/${n[0]}`, icon: n[1], text: n[2] }))]);
-      groups.push(['', [{ href: `#/procedimentos?q=${encodeURIComponent(q)}`, icon: 'list', text: `Ver todos os procedimentos para “${q}”` }]]);
-    }
-    this.items = groups.flatMap((g) => g[1]);
-    this.active = 0;
-    let i = 0;
-    this.results.innerHTML = String(html`${groups.map(([title, items]) => html`
-      ${title ? html`<div class="pr-group">${title}</div>` : ''}
-      ${items.map((it) => html`<a class="pr-item ${i === 0 ? 'on' : ''}" role="option" data-i="${i++}" href="${it.href}">
-        ${it.icon ? icon(it.icon) : html`<span class="code">${it.code}</span>`}<span class="pr-text">${raw(mark(it.text, q))}</span>${it.val ? html`<span class="pr-val">${it.val}</span>` : ''}</a>`)}`)}`);
-  },
-  move(d) {
-    const els = $$('.pr-item', this.results);
-    if (!els.length) return;
-    this.active = (this.active + d + els.length) % els.length;
-    els.forEach((e, i) => e.classList.toggle('on', i === this.active));
-    els[this.active].scrollIntoView({ block: 'nearest' });
-  },
 };
-
-palette.input.addEventListener('input', debounce(() => palette.draw(), 80));
-palette.input.addEventListener('keydown', (e) => {
-  if (e.key === 'ArrowDown') e.preventDefault(), palette.move(1);
-  if (e.key === 'ArrowUp') e.preventDefault(), palette.move(-1);
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    const it = palette.items[palette.active];
-    if (it) (location.hash = it.href), palette.close();
-  }
-  if (e.key === 'Escape') palette.close();
-});
+palette.box = searchBox(palette.input, palette.results, () => palette.close());
 palette.el.addEventListener('mousedown', (e) => e.target === palette.el && palette.close());
-palette.results.addEventListener('click', (e) => e.target.closest('.pr-item') && palette.close());
 
 // ---------------------------------------------------------------------------
 // Shell: tema, menu, competência, atalhos e ações globais
@@ -1591,7 +1636,8 @@ function initShell() {
   $('#theme-btn').onclick = () => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
   $('#menu-btn').onclick = () => document.body.classList.toggle('nav-open');
   $('#scrim').onclick = closeSidebar;
-  $('#search-trigger').onclick = () => palette.open();
+  $('.adv-icon').innerHTML = String(icon('filter'));
+  $('#adv-btn').onclick = () => palette.open();
 
   const sel = $('#comp-select');
   sel.innerHTML = String(html`${store.manifest.competencias.map((x) => html`<option value="${x.id}" ${x.id === C().id ? 'selected' : ''}>${x.rotulo}${x.id === store.manifest.atual ? ' (atual)' : ''}</option>`)}`);
@@ -1605,12 +1651,10 @@ function initShell() {
 
   document.addEventListener('keydown', (e) => {
     const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName);
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+    if (((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') || (e.key === '/' && !typing)) {
       e.preventDefault();
-      palette.el.hidden ? palette.open() : palette.close();
-    } else if (e.key === '/' && !typing && palette.el.hidden) {
-      e.preventDefault();
-      palette.open();
+      palette.close();
+      topSearch.focus();
     } else if (e.key === 'Escape' && !palette.el.hidden) palette.close();
   });
 
@@ -1640,8 +1684,8 @@ function renderFoot() {
   const c = C();
   $('#sidebar-foot').innerHTML = String(html`<div class="comp-pill ${c.completo ? 'ok' : 'warn'}">
     <span class="dot"></span><div><strong>Competência ${c.meta.rotulo}</strong><small>${c.completo ? 'Carga completa' : 'Carga parcial'} · ${num(c.procs.length)} proc.</small></div></div>
-    <button class="kbd-hint" id="kbd-hint">${icon('keyboard')} <span>Busca rápida</span> <kbd>/</kbd></button>`);
-  $('#kbd-hint').onclick = () => palette.open();
+    <button class="kbd-hint" id="kbd-hint">${icon('keyboard')} <span>Buscar</span> <kbd>/</kbd></button>`);
+  $('#kbd-hint').onclick = () => (closeSidebar(), topSearch.focus());
 }
 
 async function boot() {

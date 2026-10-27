@@ -41,10 +41,15 @@
       <div class="main-col">
         <header class="topbar">
           <button class="icon-btn only-mobile" id="menu-btn" aria-label="Abrir menu"></button>
-          <button class="search-trigger" id="search-trigger" aria-label="Buscar (Ctrl+K)">
+          <div class="top-search" id="top-search">
             <span class="st-icon"></span>
-            <span class="st-text">Buscar procedimento, código, CID, CBO…</span>
+            <input id="top-q" type="search" placeholder="Buscar procedimento, código, CID, CBO…" autocomplete="off"
+              role="combobox" aria-label="Buscar" aria-autocomplete="list" aria-expanded="false" aria-controls="top-results" />
             <kbd>Ctrl K</kbd>
+            <div class="top-results" id="top-results" role="listbox" hidden></div>
+          </div>
+          <button class="btn adv-btn" id="adv-btn" title="Pesquisa avançada">
+            <span class="adv-icon"></span><span>Pesquisa avançada</span>
           </button>
           <div class="topbar-actions">
             <label class="comp-select" title="Competência">
@@ -69,7 +74,7 @@
       </div>
     </div>
     <div class="palette" id="palette" hidden>
-      <div class="palette-box" role="dialog" aria-modal="true" aria-label="Busca rápida">
+      <div class="palette-box" role="dialog" aria-modal="true" aria-label="Pesquisa avançada">
         <div class="palette-input">
           <span class="pi-icon"></span>
           <input id="palette-input" type="search" placeholder="Digite um código, nome, CID ou CBO…" autocomplete="off" />
