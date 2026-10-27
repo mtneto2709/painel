@@ -1,0 +1,2 @@
+# Dependências do servidor (scripts/servidor.py). Python 3.10 ou superior.
+anthropic==2.3.0

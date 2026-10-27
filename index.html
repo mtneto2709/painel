@@ -73,6 +73,14 @@
         </footer>
       </div>
     </div>
+    <dialog class="modal ai-modal" id="ai-modal" aria-labelledby="ai-title">
+      <div class="modal-head">
+        <div class="ai-head"><span class="ai-badge" id="ai-badge"></span>
+          <div><h2 id="ai-title">Resumo de IA</h2><small id="ai-sub"></small></div></div>
+        <button class="icon-btn" id="ai-close" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body" id="ai-body" aria-live="polite"></div>
+    </dialog>
     <div class="palette" id="palette" hidden>
       <div class="palette-box" role="dialog" aria-modal="true" aria-label="Pesquisa avançada">
         <div class="palette-input">

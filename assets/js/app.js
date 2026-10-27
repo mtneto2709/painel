@@ -678,6 +678,7 @@ async function viewDetalhe({ args: [co], params, token }) {
       <div class="chips">${cxChip(p.cx)}${p.fin ? html`<span class="chip">${finName(p.fin)}</span>` : ''}
         ${p.mod.map((m) => html`<span class="chip soft">${c.nome('modalidades', m)}</span>`)}</div>
       <div class="detail-actions">
+        <button class="btn ai-btn" id="ai-btn">${icon('spark')}<span>Resumo de IA</span></button>
         ${favBtn(p.co, true)}
         <button class="btn" data-cesta="${p.co}">${icon('calc')}<span>Simulador</span></button>
         <button class="btn" data-cmp="${p.co}">${icon('columns')}<span>Comparar</span></button>
@@ -736,6 +737,8 @@ async function viewDetalhe({ args: [co], params, token }) {
     if (t) show(t.dataset.tab);
   };
   show(TABS.some(([k]) => k === tab) ? tab : 'resumo');
+
+  $('#ai-btn').onclick = () => resumoIA.abrir(p);
 
   const menu = $('#more-menu');
   $('#more-btn').onclick = (e) => {
@@ -800,6 +803,84 @@ function fitTabs(bar, label, onPick) {
     },
   };
 }
+
+// ---------------------------------------------------------------------------
+// Resumo de IA
+//
+// O servidor devolve sempre { etapas, resumo }, tenha o resumo acabado de ser
+// gerado ou vindo do banco. A apresentação é a mesma nos dois casos: uma etapa
+// inicial com tempo mínimo, as etapas de raciocínio uma a uma e então o resumo.
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+const resumoIA = {
+  el: $('#ai-modal'),
+  body: $('#ai-body'),
+  run: 0,
+  async abrir(p) {
+    const run = ++this.run;
+    const alive = () => run === this.run && this.el.open;
+    $('#ai-sub').textContent = `${fmtCode(p.co)} · ${p.no}`;
+    this.body.innerHTML = String(html`<ol class="ai-steps" id="ai-steps"></ol><div id="ai-out"></div>`);
+    if (!this.el.open) this.el.showModal();
+    const steps = $('#ai-steps', this.body);
+    const step = (text) => {
+      $$('.ai-step:not(.done)', steps).forEach((li) => li.classList.add('done'));
+      steps.insertAdjacentHTML('beforeend', String(html`<li class="ai-step"><span class="ai-dot"></span><span>${text}</span></li>`));
+    };
+
+    step('Analisando a ficha do procedimento');
+    const pedido = fetch('api/resumo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ codigo: p.co, competencia: C().id }),
+    })
+      .then(async (r) => ({ ok: r.ok, data: await r.json().catch(() => null) }))
+      .catch(() => ({ ok: false, data: null }));
+    const [res] = await Promise.all([pedido, sleep(2200 + Math.random() * 1200)]);
+    if (!alive()) return;
+
+    if (!res.ok || !res.data?.resumo) {
+      $$('.ai-step', steps).forEach((li) => li.classList.add('done', 'fail'));
+      $('#ai-out', this.body).innerHTML = String(html`<div class="notice warn">${icon('alert')}<div>
+        <p>${res.data?.erro || 'O resumo de IA não está disponível neste ambiente.'}</p></div></div>`);
+      return;
+    }
+    for (const etapa of res.data.etapas) {
+      step(etapa);
+      await sleep(Math.min(3200, Math.max(1100, 700 + etapa.length * 14)));
+      if (!alive()) return;
+    }
+    $$('.ai-step', steps).forEach((li) => li.classList.add('done'));
+    await sleep(400);
+    if (!alive()) return;
+
+    const n = res.data.etapas.length + 1;
+    steps.outerHTML = String(html`<details class="ai-think"><summary>${icon('spark')} Raciocínio · ${n} etapas</summary>${raw(steps.outerHTML)}</details>`);
+    $('#ai-out', this.body).innerHTML = String(this.render(res.data.resumo));
+  },
+  render(r) {
+    const L = (a) => (Array.isArray(a) ? a : []);
+    const sec = (t, body) => html`<section class="ai-sec"><h3>${t}</h3>${body}</section>`;
+    const ul = (items) => html`<ul>${items.map((x) => html`<li>${x}</li>`)}</ul>`;
+    return html`<div class="ai-result">
+      ${sec('O que é', html`<p>${r.o_que_e}</p>`)}
+      ${sec('Quando usar', ul(L(r.quando_usar)))}
+      ${sec('Como usar e registrar', ul(L(r.como_usar)))}
+      ${sec('Quando não usar', html`<ul>${L(r.quando_nao_usar).map((x) => html`<li><strong>${x.situacao}</strong> ${x.motivo}</li>`)}</ul>`)}
+      ${sec('Erros comuns e falhas de interpretação', html`<ul>${L(r.erros_comuns).map((x) => html`<li><strong>${x.erro}</strong> ${x.explicacao}</li>`)}</ul>`)}
+      ${r.atuacao_multiprofissional ? sec('Atuação de vários profissionais', html`<p>${r.atuacao_multiprofissional.regra_geral}</p>
+        <ul>${L(r.atuacao_multiprofissional.situacoes).map((x) => html`<li><strong>${x.situacao}</strong> ${x.cobranca}</li>`)}</ul>`) : ''}
+      ${L(r.casos_de_uso).length ? sec('Casos de uso', html`<div class="ai-cases">${L(r.casos_de_uso).map((x) => html`<article><strong>${x.titulo}</strong><p>${x.descricao}</p></article>`)}</div>`) : ''}
+      <div class="notice info">${icon('info')}<div>Conteúdo gerado por inteligência artificial a partir da ficha oficial da SIGTAP.
+        Pode conter imprecisões; confirme sempre no SIGTAP oficial e nas normas vigentes antes de faturar.</div></div>
+    </div>`;
+  },
+};
+$('#ai-badge').innerHTML = String(icon('spark'));
+$('#ai-close').innerHTML = String(icon('x'));
+$('#ai-close').onclick = () => resumoIA.el.close();
+resumoIA.el.addEventListener('click', (e) => e.target === resumoIA.el && resumoIA.el.close());
 
 function fichaTexto(p) {
   const c = C();

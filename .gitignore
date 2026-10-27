@@ -1,2 +1,7 @@
 __pycache__/
 *.pyc
+
+# Segredos e dados locais do servidor de resumos
+.env
+data/resumos/
+.venv/

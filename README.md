@@ -2,10 +2,11 @@
 
 Consulta moderna à **Tabela de Procedimentos, Medicamentos, Órteses, Próteses e Materiais Especiais do SUS** (Tabela Unificada / SIGTAP), com dados públicos do Ministério da Saúde / DATASUS.
 
-Site estático (HTML, CSS e JavaScript puro, sem build): é só servir a pasta.
+HTML, CSS e JavaScript puro, sem build. O site funciona servido como arquivos estáticos; o
+**Resumo de IA** precisa do servidor em Python incluído no projeto (veja abaixo).
 
 ```bash
-python3 -m http.server 8000
+python3 -m http.server 8000          # só o site, sem Resumo de IA
 # abra http://localhost:8000
 ```
 
@@ -68,6 +69,54 @@ onde eles faltam.
 - `.github/workflows/pages.yml` publica o site no GitHub Pages
   (ative em *Settings → Pages → Source: GitHub Actions*).
 
+## Resumo de IA
+
+Na ficha do procedimento, o botão **Resumo de IA** abre um resumo gerado pelo Claude: o que é o
+procedimento, quando e como usar, quando não usar e por quê, erros comuns e falhas de
+interpretação e casos de uso. O resumo é montado a partir da ficha oficial da competência
+(atributos, descrição, CID, CBO, habilitações, leitos, compatibilidades e regras).
+
+Cada procedimento é gerado **uma única vez**: o resultado fica num banco SQLite e os pedidos
+seguintes são servidos dele, sem gastar tokens. A resposta e a apresentação são idênticas nos dois
+casos (verificações da ficha exibidas uma a uma e depois o resumo).
+
+### Rodar localmente
+
+```bash
+python3.12 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+echo 'ANTHROPIC_API_KEY=sk-ant-...' > .env     # o .env nunca vai para o git
+.venv/bin/python scripts/servidor.py           # http://127.0.0.1:8000
+```
+
+### Publicação
+
+O servidor (`scripts/servidor.py`) usa só a biblioteca padrão do Python 3.10+ e o SDK `anthropic`.
+Ele serve apenas `index.html`, `assets/` e `data/` (exceto o banco), sem listagem de diretórios,
+e a rota `POST /api/resumo`. Há um `Dockerfile` pronto:
+
+```bash
+docker build -t sigtap .
+docker run -p 8000:8000 -e ANTHROPIC_API_KEY=... -v sigtap-resumos:/var/lib/sigtap sigtap
+```
+
+| Variável | Padrão | Uso |
+| --- | --- | --- |
+| `ANTHROPIC_API_KEY` | — | Chave da API da Anthropic. Sem ela, só os resumos já guardados são servidos. |
+| `SIGTAP_HOST` / `SIGTAP_PORTA` | `127.0.0.1` / `8000` | Endereço e porta (no Docker, `0.0.0.0`). |
+| `SIGTAP_RESUMOS_DB` | `data/resumos/resumos.sqlite3` | Banco de resumos; mantenha num volume persistente e faça backup. |
+| `SIGTAP_IA_MODELO` | `claude-opus-5-5` | Modelo usado na geração. |
+| `SIGTAP_IA_ESFORCO` | `high` | Profundidade do raciocínio: `low`, `medium`, `high`, `xhigh`, `max`. |
+| `SIGTAP_IA_LIMITE_IP_HORA` | `20` | Novos resumos por IP por hora (`0` = sem limite). Resumos do banco não contam. |
+| `SIGTAP_IA_LIMITE_DIA` | `500` | Novos resumos por dia no total (`0` = sem limite). |
+| `SIGTAP_CONFIAR_PROXY` | — | `1` para usar `X-Forwarded-For` como IP do cliente (atrás de proxy reverso). |
+| `SIGTAP_LOG` | `INFO` | Nível de log. Cada geração registra duração e tokens de entrada e saída. |
+
+Custo de referência com `claude-opus-5-5`: cerca de 4,5 mil tokens de entrada e 4 mil de saída
+por resumo (≈ US$ 0,10), gasto uma única vez por procedimento. Com vários processos ou réplicas,
+use um único banco compartilhado (ou troque o SQLite por outro banco) para não gerar o mesmo
+resumo duas vezes.
+
 ## Testes
 
 ```bash
@@ -85,4 +134,5 @@ assets/js/app.js        rotas e telas
 assets/js/data.js       carregamento, busca, filtros e índices reversos
 assets/js/ui.js         templates seguros, ícones, CSV, toasts
 scripts/sigtap_build.py gerador de dados
+scripts/servidor.py     servidor do site e do Resumo de IA
 ```

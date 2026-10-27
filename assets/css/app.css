@@ -605,6 +605,37 @@ table.compare td.best { font-weight: 700; color: var(--primary); }
 .dl-how { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; color: var(--text-3); }
 .dl-how:hover { color: var(--primary); }
 .dl-how .i { width: 16px; height: 16px; }
+.ai-btn { border-color: color-mix(in srgb, var(--g05) 40%, var(--border)); color: var(--g05); }
+.ai-btn:hover { background: color-mix(in srgb, var(--g05) 8%, var(--surface)); border-color: var(--g05); }
+.ai-modal { width: min(780px, calc(100vw - 32px)); }
+.ai-head { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.ai-head small { display: block; color: var(--text-3); font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 560px; }
+.ai-badge { display: grid; place-items: center; width: 34px; height: 34px; flex: none; border-radius: 10px; color: #fff; background: linear-gradient(140deg, var(--g05), var(--primary)); }
+.ai-badge .i { width: 18px; height: 18px; }
+.ai-steps { list-style: none; margin: 14px 0 6px; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.ai-step { display: flex; gap: 12px; align-items: flex-start; color: var(--text); font-size: 0.9rem; line-height: 1.45; animation: fade 0.3s; }
+.ai-step.done { color: var(--text-3); }
+.ai-dot { width: 16px; height: 16px; flex: none; margin-top: 2px; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--g05); animation: spin 0.8s linear infinite; }
+.ai-step.done .ai-dot { animation: none; border: 0; background: var(--ok-soft); position: relative; }
+.ai-step.done .ai-dot::after { content: ''; position: absolute; left: 5px; top: 3px; width: 4px; height: 7px; border: solid var(--ok); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.ai-step.fail .ai-dot { background: var(--warn-soft); }
+.ai-step.fail .ai-dot::after { border-color: var(--warn); }
+.ai-think { margin: 12px 0 4px; border: 1px solid var(--border); border-radius: 12px; padding: 4px 14px; background: var(--surface-2); }
+.ai-think summary { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 0; color: var(--text-2); font-size: 0.85rem; font-weight: 500; list-style: none; }
+.ai-think summary::-webkit-details-marker { display: none; }
+.ai-think summary .i { width: 16px; height: 16px; color: var(--g05); }
+.ai-think .ai-steps { margin: 4px 0 12px; }
+.ai-result { animation: fade 0.35s; }
+.ai-sec { margin-top: 18px; }
+.ai-sec h3 { font-size: 0.95rem; margin: 0 0 8px; }
+.ai-sec p, .ai-sec li { font-size: 0.92rem; line-height: 1.55; color: var(--text); }
+.ai-sec ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.ai-sec p + ul { margin-top: 10px; }
+.ai-sec li strong { display: block; }
+.ai-cases { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.ai-cases article { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; background: var(--surface-2); }
+.ai-cases article p { margin: 6px 0 0; font-size: 0.86rem; color: var(--text-2); }
+.ai-result .notice { margin-top: 20px; }
 .palette { position: fixed; inset: 0; z-index: 90; background: rgba(8, 20, 19, 0.45); backdrop-filter: blur(4px); display: flex; justify-content: center; padding: 10vh 16px 16px; animation: fade 0.15s; }
 .palette[hidden] { display: none; }
 .palette-box { width: 100%; max-width: 680px; max-height: 72vh; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow-lg); overflow: hidden; }
@@ -698,7 +729,7 @@ table.compare td.best { font-weight: 700; color: var(--primary); }
 
 /* ---------- Impressão ---------- */
 @media print {
-  .sidebar, .topbar, .footer, .filters, .results-actions, .detail-actions, .tabs, .pager, .c-act, .more, .head-actions, .palette, .toasts, .hero-search, .active-chips { display: none !important; }
+  .sidebar, .topbar, .footer, .ai-btn, .filters, .results-actions, .detail-actions, .tabs, .pager, .c-act, .more, .head-actions, .palette, .toasts, .hero-search, .active-chips { display: none !important; }
   body { background: #fff; color: #000; font-size: 11pt; }
   .page { padding: 0; max-width: none; }
   .card, .value-card, table.results { box-shadow: none; border-color: #bbb; }
