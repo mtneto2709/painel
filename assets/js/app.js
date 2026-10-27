@@ -628,7 +628,6 @@ async function viewConsulta({ params, token }) {
 
 const TABS = [
   ['resumo', 'Atributos'],
-  ['descricao', 'Descrição'],
   ['cid', 'CID'],
   ['cbo', 'CBO'],
   ['hab', 'Habilitações'],
@@ -700,8 +699,12 @@ async function viewDetalhe({ args: [co], params, token }) {
       <div class="value-card accent"><span>Total Hospitalar</span><strong>${money(p.totHosp)}</strong></div>
     </div>
 
+    ${rel?.d ? html`<section class="card desc-card"><h2>Descrição</h2>
+      <div class="prose">${descricao(rel.d).map((l) => html`<p>${l}</p>`)}</div></section>` : ''}
+
     <div class="tabs" role="tablist">
       ${TABS.map(([k, l]) => html`<button role="tab" class="tab ${tab === k ? 'on' : ''}" aria-selected="${tab === k}" data-tab="${k}">${l}${counts[k] != null ? html`<b>${counts[k]}</b>` : ''}</button>`)}
+      <label class="tab tab-more" hidden><select aria-label="Mais abas"></select>${icon('down', 'chev')}</label>
     </div>
     <div class="tab-body card" id="tab-body"></div>
 
@@ -712,11 +715,16 @@ async function viewDetalhe({ args: [co], params, token }) {
   </div>`);
 
   const body = $('#tab-body');
+  const tabs = fitTabs($('.tabs'), (k) => {
+    const [, l] = TABS.find((t) => t[0] === k);
+    return counts[k] != null ? `${l} (${counts[k]})` : l;
+  }, (k) => show(k));
   const show = (k) => {
-    $$('.tab').forEach((t) => {
+    $$('.tab[data-tab]').forEach((t) => {
       t.classList.toggle('on', t.dataset.tab === k);
       t.setAttribute('aria-selected', t.dataset.tab === k);
     });
+    tabs.setActive(k);
     const q = new URLSearchParams();
     if (k !== 'resumo') q.set('aba', k);
     setParams(q);
@@ -740,6 +748,56 @@ async function viewDetalhe({ args: [co], params, token }) {
     if (a === 'link') copy(location.href.split('?')[0], 'Link copiado');
     if (a === 'print') window.print();
     if (a === 'ficha') copy(fichaTexto(p), 'Ficha copiada');
+  };
+}
+
+// Os textos do DATASUS trazem "||" onde havia quebra de linha no arquivo de
+// largura fixa; tratamos como espaço e só quebramos parágrafos em \n.
+function descricao(d) {
+  return d.split(/\n+/).map((l) => l.replace(/\s*\|\|\s*/g, ' ').trim()).filter(Boolean);
+}
+
+// Abas que não cabem na largura disponível saem da linha e passam a ser
+// opções do seletor "Mais", que ocupa o lugar da última aba visível.
+let tabsObserver = null;
+function fitTabs(bar, label, onPick) {
+  const btns = $$('.tab[data-tab]', bar);
+  const more = $('.tab-more', bar);
+  const sel = $('select', more);
+  let active = null;
+  let hidden = [];
+  const fill = () => {
+    const isHidden = hidden.includes(active);
+    sel.innerHTML = String(html`<option value="" ${raw(isHidden ? '' : 'selected')}>Mais</option>
+      ${hidden.map((k) => html`<option value="${k}" ${raw(k === active ? 'selected' : '')}>${label(k)}</option>`)}`);
+    more.classList.toggle('on', isHidden);
+    // <select> nativo assume a largura da opção mais longa; ajusta à opção atual.
+    const ctx = (fitTabs.ctx ??= document.createElement('canvas').getContext('2d'));
+    const cs = getComputedStyle(sel);
+    ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    sel.style.width = `${Math.ceil(ctx.measureText(sel.selectedOptions[0].text).width) + 50}px`;
+  };
+  const layout = () => {
+    btns.forEach((b) => (b.hidden = false));
+    more.hidden = true;
+    hidden = [];
+    for (let i = btns.length - 1; i > 0 && bar.scrollWidth > bar.clientWidth; i--) {
+      btns[i].hidden = true;
+      hidden.unshift(btns[i].dataset.tab);
+      more.hidden = false;
+      fill();
+    }
+    if (!hidden.length) fill();
+  };
+  sel.onchange = () => sel.value && onPick(sel.value);
+  tabsObserver?.disconnect();
+  tabsObserver = new ResizeObserver(layout);
+  tabsObserver.observe(bar);
+  return {
+    setActive(k) {
+      active = k;
+      layout();
+    },
   };
 }
 
@@ -797,10 +855,6 @@ function renderTab(k, p, rel) {
   if (!rel) return incompleteNotice('Esta aba');
   const L = (arr) => arr || [];
   switch (k) {
-    case 'descricao':
-      return rel.d
-        ? html`<div class="prose">${rel.d.split(/\n+/).map((l) => html`<p>${l}</p>`)}</div>`
-        : html`<p class="muted pad">Sem descrição cadastrada.</p>`;
     case 'cid':
       return relTable(
         L(rel.cid).map(([cid, pri]) => {

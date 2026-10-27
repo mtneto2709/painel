@@ -448,13 +448,25 @@ table.simple tfoot th { background: var(--surface-2); font-size: 0.95rem; }
 .value-card strong { display: block; font-size: 1.25rem; font-variant-numeric: tabular-nums; margin-top: 4px; letter-spacing: -0.01em; }
 .value-card.accent { background: linear-gradient(150deg, var(--primary), var(--primary-2)); border-color: transparent; color: var(--primary-ink); }
 .value-card.accent span { color: color-mix(in srgb, var(--primary-ink) 80%, transparent); }
-.tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--border); margin-bottom: -1px; scrollbar-width: thin; }
+.desc-card { padding: 18px 20px; margin-bottom: 20px; }
+.desc-card h2 { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); margin: 0 0 8px; }
+.desc-card .prose p { margin: 0 0 6px; }
+.desc-card .prose p:last-child { margin-bottom: 0; }
+.tabs { display: flex; gap: 4px; overflow: hidden; border-bottom: 1px solid var(--border); margin-bottom: -1px; }
 .tab { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border: 1px solid transparent; border-bottom: 0; background: none; font: inherit; font-size: 0.9rem; font-weight: 500; color: var(--text-2); cursor: pointer; border-radius: 10px 10px 0 0; white-space: nowrap; }
 .tab b { font-size: 0.72rem; padding: 1px 7px; border-radius: 99px; background: var(--bg-2); color: var(--text-3); }
 .tab:hover { color: var(--text); }
 .tab.on { background: var(--surface); border-color: var(--border); color: var(--primary); position: relative; }
 .tab.on::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px; background: var(--surface); }
 .tab.on b { background: var(--primary-soft); color: var(--primary); }
+.tab[hidden] { display: none; }
+.tab-more { position: relative; padding: 0; flex: none; }
+.tab-more select {
+  appearance: none; -webkit-appearance: none; border: 0; background: none; font: inherit; color: inherit;
+  padding: 10px 34px 10px 14px; cursor: pointer; text-overflow: ellipsis;
+}
+.tab-more select:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; border-radius: 10px 10px 0 0; }
+.tab-more .chev { position: absolute; right: 12px; top: 50%; width: 15px; height: 15px; transform: translateY(-50%); pointer-events: none; }
 .tab-body { border-top-left-radius: 0; padding: 20px; min-height: 160px; }
 .attrs { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 0 24px; margin: 0; }
 .attr { padding: 12px 0; border-bottom: 1px dashed var(--border); }
