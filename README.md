@@ -76,6 +76,11 @@ procedimento, quando e como usar, quando não usar e por quê, erros comuns e fa
 interpretação e casos de uso. O resumo é montado a partir da ficha oficial da competência
 (atributos, descrição, CID, CBO, habilitações, leitos, compatibilidades e regras).
 
+A seção **Atuação de vários profissionais** (se um registro cobre a equipe ou se cada profissional
+ou CBO cobra por evento) só é pedida ao modelo quando o procedimento aceita ao menos duas profissões
+de nível superior (CBO iniciados em 2; as famílias médicas contam como uma só) e não é exame,
+medicamento ou OPM (grupos 02, 06 e 07). Hoje isso vale para cerca de 11% dos procedimentos.
+
 Cada procedimento é gerado **uma única vez**: o resultado fica num banco SQLite e os pedidos
 seguintes são servidos dele, sem gastar tokens. A resposta e a apresentação são idênticas nos dois
 casos (verificações da ficha exibidas uma a uma e depois o resumo).

@@ -108,6 +108,24 @@ SEXO = {"M": "Masculino", "F": "Feminino", "I": "Ambos", "N": "Não se aplica"}
 TIPO_COMPAT = {"1": "Compatível", "2": "Incompatível / excludente", "3": "Concomitante"}
 
 
+# Grupos em que a seção multiprofissional não faz sentido: exames, medicamentos e OPM.
+GRUPOS_SEM_MULTI = {"02", "06", "07"}
+# Famílias CBO de médicos (contam como uma única profissão).
+FAMILIAS_MEDICAS = {"2231", "2251", "2252", "2253"}
+
+
+def multiprofissional(comp: str, co: str) -> bool:
+    """Procedimento aceita ao menos duas profissões de nível superior (ex.: médico e enfermeiro)."""
+    if co[:2] in GRUPOS_SEM_MULTI:
+        return False
+    profissoes = {
+        "medico" if c[:4] in FAMILIAS_MEDICAS else c[:4]
+        for c in shard(comp, co[:2]).get(co, {}).get("cbo", [])
+        if c.startswith("2")
+    }
+    return len(profissoes) >= 2
+
+
 def fmt_code(co: str) -> str:
     return f"{co[:2]}.{co[2:4]}.{co[4:6]}.{co[6:9]}-{co[9:]}"
 
@@ -251,17 +269,19 @@ portarias ou regras.
 - Use os atributos da ficha para explicar restrições concretas: sexo, idade, quantidade máxima, \
 CBO, CID, habilitação, leito e instrumento de registro.
 - Os casos de uso devem ser situações clínicas e administrativas plausíveis e coerentes com a ficha.
+- Não use markdown nos textos; cada item é uma frase ou um parágrafo curto.
+- Em "verificacoes", liste de 4 a 7 conferências feitas na ficha para compor o resumo, cada uma \
+com uma frase curta no gerúndio citando o dado concreto (por exemplo: "Conferindo a faixa etária \
+permitida: até 1 mês de vida")."""
+
+SISTEMA_MULTI = """
 - Em "atuacao_multiprofissional", explique como fica a cobrança quando vários profissionais \
 (médicos, enfermeiros, técnicos, fisioterapeutas etc.) atuam no mesmo atendimento: se um único \
 registro do procedimento já remunera a equipe toda ou se cada profissional ou CBO pode registrar o \
 procedimento por evento. Fundamente-se no instrumento de registro (BPA consolidado, BPA \
 individualizado, APAC, AIH), na lista de CBO da ficha, na quantidade máxima e, na AIH, no rateio \
 do serviço profissional (SP) por pontos. Dê situações concretas com a equipe envolvida e a regra \
-de cobrança de cada uma; quando a resposta depender de norma local ou do gestor, diga isso.
-- Não use markdown nos textos; cada item é uma frase ou um parágrafo curto.
-- Em "verificacoes", liste de 4 a 7 conferências feitas na ficha para compor o resumo, cada uma \
-com uma frase curta no gerúndio citando o dado concreto (por exemplo: "Conferindo a faixa etária \
-permitida: até 1 mês de vida")."""
+de cobrança de cada uma; quando a resposta depender de norma local ou do gestor, diga isso."""
 
 ESQUEMA = {
     "type": "object",
@@ -346,6 +366,12 @@ def client():
 def gerar(comp: str, co: str, ficha: str) -> tuple[list, dict, object]:
     import anthropic
 
+    multi = multiprofissional(comp, co)
+    esquema = json.loads(json.dumps(ESQUEMA))
+    if not multi:
+        del esquema["properties"]["atuacao_multiprofissional"]
+        esquema["required"].remove("atuacao_multiprofissional")
+
     try:
         with client().beta.messages.stream(
             model=MODELO,
@@ -353,8 +379,8 @@ def gerar(comp: str, co: str, ficha: str) -> tuple[list, dict, object]:
             betas=["server-side-fallback-2026-07-01"],
             fallbacks="default",
             thinking={"type": "adaptive"},
-            output_config={"effort": ESFORCO, "format": {"type": "json_schema", "schema": ESQUEMA}},
-            system=SISTEMA,
+            output_config={"effort": ESFORCO, "format": {"type": "json_schema", "schema": esquema}},
+            system=SISTEMA + (SISTEMA_MULTI if multi else ""),
             messages=[{"role": "user", "content": f"Ficha do procedimento:\n\n{ficha}"}],
         ) as stream:
             msg = stream.get_final_message()
