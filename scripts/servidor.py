@@ -366,6 +366,8 @@ def client():
 def gerar(comp: str, co: str, ficha: str) -> tuple[list, dict, object]:
     import anthropic
 
+    if not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
+        raise IndisponivelError("ANTHROPIC_API_KEY não definida")
     multi = multiprofissional(comp, co)
     esquema = json.loads(json.dumps(ESQUEMA))
     if not multi:
